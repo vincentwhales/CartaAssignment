@@ -3,17 +3,36 @@ import csv
 import json
 from datetime import datetime
 
-FORMAT = '%Y-%m-%d'
+DT_FORMAT = '%Y-%m-%d'
 
 
 class Entry(object):
+    """A container that holds one CSV row. Each CSV row represents one
+    investment transaction by one investor.
+
+    Attributes:
+        dt (datetime): date field of CSV row
+        shares (int): number of shares owned by this investor
+        cash_paid (float): how much this investor has invested
+        investor (str): name of the investor for this transaction
+    """
     def __init__(self, row):
-        self.dt = datetime.strptime(row[0], FORMAT)
+        """Instantiates the entry class with a CSV row.
+
+        Args:
+            row (list): List of strings for an investment transaction.
+        """
+        self.dt = datetime.strptime(row[0], DT_FORMAT)
         self.shares = int(row[1])
         self.cash_paid = float(row[2])
         self.investor = row[3]
 
     def to_ownership(self, total_shares):
+        """Maps the values of this class to a dictionary object.
+
+        Args:
+            total_shares (int): Total no. of outstanding shares for a co.
+        """
         return dict(
             investor=self.investor,
             shares=self.shares,
@@ -23,13 +42,28 @@ class Entry(object):
 
 
 class CapTableParser(object):
+    """Parses a CSV file and outputs a JSON formatted captable.
 
+    Attributes:
+        dt (datetime): The end date of when transactions should be counted.
+
+    Note:
+        if dt is set to t=100 transactions happening after t=100 will be
+        ignored.
+    """
     def __init__(self):
         self.dt = None
 
     def main(self, csv_path, date_s):
+        """Prints a JSON formatted captable from the CSV file.
+
+        Args:
+            csv_path (str): file path of the csv file.
+            date_s (str): a string in DT_FORMAT for the transaction cut off
+                point.
+        """
         if date_s:
-            self.dt = datetime.strptime(date_s, FORMAT)
+            self.dt = datetime.strptime(date_s, DT_FORMAT)
         else:
             self.dt = datetime.now()
 
@@ -46,7 +80,7 @@ class CapTableParser(object):
                     continue
 
                 entry = Entry(row)
-                if entry.dt > self.dt:  # skip entires that happens AFTER
+                if entry.dt > self.dt:  # skip entires that happens after dt
                     continue
 
                 cash_raised += entry.cash_paid
@@ -54,7 +88,7 @@ class CapTableParser(object):
                 entries.append(entry)
 
         print(json.dumps(dict(
-            date=self.dt.strftime(FORMAT),
+            date=self.dt.strftime(DT_FORMAT),
             cash_raised=cash_raised,
             total_number_of_shares=total_number_of_shares,
             ownership=[
@@ -73,5 +107,5 @@ if __name__ == "__main__":
     elif len(sys.argv) == 3:
         ctp.main(sys.argv[1], sys.argv[2])
     else:
-        print('python captable.py <CSV file path> [YYYY-MM-DD]')
+        print('python captable.py <csv_file_path> [YYYY-MM-DD]')
 
