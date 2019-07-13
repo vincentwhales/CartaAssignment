@@ -16,13 +16,15 @@ class Entry(object):
         cash_paid (float): how much this investor has invested
         investor (str): name of the investor for this transaction
     """
-    def __init__(self, row):
-        """Instantiates the entry class with a CSV row.
+    def __init__(self, dt, row):
+        """Instantiates the entry class with a CSV row that represents an
+        investment transaction.
 
         Args:
-            row (list): List of strings for an investment transaction.
+            row (list): List of strings for the transaction.
+            dt (datetime): datetime for the transaction.
         """
-        self.dt = datetime.strptime(row[0], DT_FORMAT)
+        self.dt = dt
         self.shares = int(row[1])
         self.cash_paid = float(row[2])
         self.investor = row[3]
@@ -69,7 +71,7 @@ class CapTableParser(object):
 
         cash_raised = 0
         total_number_of_shares = 0
-        entries = []
+        entries = {}        # 'investor': entry
 
         with open(csv_path, mode='r') as csv_file:
             csv_reader = csv.reader(csv_file)
@@ -79,20 +81,28 @@ class CapTableParser(object):
                 if not row:             # skip empty lines
                     continue
 
-                entry = Entry(row)
-                if entry.dt > self.dt:  # skip entires that happens after dt
+                dt = datetime.strptime(row[0], DT_FORMAT)
+                if dt > self.dt:        # skip entires that happens after dt
                     continue
+
+                # Indiscriminate: all transactions are kosher after this point
+
+                investor = row[3]
+                if investor in entries:
+                    entry = entries[investor]
+                else:
+                    entry = Entry(dt, row)
+                    entries[investor] = entry
 
                 cash_raised += entry.cash_paid
                 total_number_of_shares += entry.shares
-                entries.append(entry)
 
         print(json.dumps(dict(
             date=self.dt.strftime(DT_FORMAT),
             cash_raised=cash_raised,
             total_number_of_shares=total_number_of_shares,
             ownership=[
-                e.to_ownership(total_number_of_shares) for e in entries
+                e.to_ownership(total_number_of_shares) for e in entries.values()
             ],
         )))
 
