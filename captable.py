@@ -1,5 +1,6 @@
 import csv
 import json
+from datetime import date
 from datetime import datetime
 
 DT_FORMAT = '%Y-%m-%d'
@@ -9,7 +10,7 @@ class Transaction(object):
     """Represents one transaction by one investor into this company.
 
     Attributes:
-        dt (datetime): date field of CSV row
+        date (datetime): date field of CSV row
         shares (int): number of shares owned by this investor
         cash_paid (float): how much this investor has invested
         investor (str): name of the investor for this transaction
@@ -20,7 +21,7 @@ class Transaction(object):
         Args:
             row (list): List of values for the transaction.
         """
-        self.dt = datetime.strptime(row[0], DT_FORMAT)
+        self.date = datetime.strptime(row[0], DT_FORMAT).date()
         self.shares = int(row[1])
         self.cash_paid = float(row[2])
         self.investor = row[3]
@@ -64,28 +65,23 @@ class CapTableParser(object):
     """Parses a CSV file and outputs a JSON formatted captable.
 
     Attributes:
-        dt (datetime): The end date of when transactions should be counted.
+        end_date (date): The end date of when transactions should be counted.
 
     Note:
-        if dt is set to t=100 transactions happening after t=100 will be
+        if end_date is set to t=100 transactions happening after t=100 will be
         ignored.
     """
     def __init__(self):
-        self.dt = None
+        self.end_date = None
 
-    def main(self, csv_path, date_s):
+    def main(self, csv_path, end_date):
         """Prints a JSON formatted captable from the CSV file.
 
         Args:
             csv_path (str): file path of the csv file.
-            date_s (str): a string in DT_FORMAT for the transaction cut off
-                point.
+            end_date (date): cut off point for transactions.
         """
-        if date_s:
-            self.dt = datetime.strptime(date_s, DT_FORMAT)
-        else:
-            self.dt = datetime.now()
-
+        self.end_date = end_date
         cash_raised = 0
         total_shares = 0
         investors = {}        # { name: investor }
@@ -99,7 +95,7 @@ class CapTableParser(object):
                     continue
 
                 transaction = Transaction(row)
-                if transaction.dt > self.dt:    # skip entires that happens after dt
+                if transaction.date > self.end_date:      # skip entires that happens after
                     continue
 
                 # Indiscriminate: all transactions are kosher after this point
@@ -116,7 +112,7 @@ class CapTableParser(object):
                 total_shares += investor.shares
 
         print(json.dumps(dict(
-            date=self.dt.strftime(DT_FORMAT),
+            date=self.end_date.strftime(DT_FORMAT),
             cash_raised=cash_raised,
             total_shares=total_shares,
             ownership=[
@@ -126,13 +122,20 @@ class CapTableParser(object):
 
 
 if __name__ == "__main__":
-    import sys
+    import argparse
 
+    parser = argparse.ArgumentParser(
+        description='Process Transactions CSV into Captable.')
+
+    parser.add_argument('csv_file', type=str,
+                        help='location of csv file')
+
+    parser.add_argument('-e', "--end_date", dest='end_date',
+                        default=date.today(),
+                        help="Cut off transaction date in the format YYYY-MM-DD",
+                        type=lambda d: datetime.strptime(d, DT_FORMAT).date())
+
+    args = parser.parse_args()
     ctp = CapTableParser()
+    ctp.main(args.csv_file, args.end_date)
 
-    if len(sys.argv) == 2:
-        ctp.main(sys.argv[1], None)
-    elif len(sys.argv) == 3:
-        ctp.main(sys.argv[1], sys.argv[2])
-    else:
-        print('python captable.py <csv_file_path> [YYYY-MM-DD]')
