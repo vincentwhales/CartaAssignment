@@ -1,4 +1,3 @@
-
 import csv
 import json
 from datetime import datetime
@@ -89,7 +88,7 @@ class CapTableParser(object):
 
         cash_raised = 0
         total_shares = 0
-        investors = {}        # 'investor': investor
+        investors = {}        # { name: investor }
 
         with open(csv_path, mode='r') as csv_file:
             csv_reader = csv.reader(csv_file)
@@ -137,4 +136,3 @@ if __name__ == "__main__":
         ctp.main(sys.argv[1], sys.argv[2])
     else:
         print('python captable.py <csv_file_path> [YYYY-MM-DD]')
-
