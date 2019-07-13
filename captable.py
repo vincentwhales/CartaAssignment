@@ -7,10 +7,10 @@ DT_FORMAT = '%Y-%m-%d'
 
 
 class Transaction(object):
-    """Represents one transaction by one investor into this company.
+    """Represents one transaction by one investor into a captable.
 
     Attributes:
-        date (datetime): date field of CSV row
+        date (date): date of the transaction
         shares (int): number of shares owned by this investor
         cash_paid (float): how much this investor has invested
         investor (str): name of the investor for this transaction
@@ -48,10 +48,10 @@ class Investor(object):
         self.cash_paid += transaction.cash_paid
 
     def to_ownership(self, total_shares):
-        """Maps the values of this instance to a dictionary object.
+        """Maps the values of this instance to a dictionary object for output.
 
         Args:
-            total_shares (int): Total no. of outstanding shares for a co.
+            total_shares (int): Total no. of outstanding shares for company.
         """
         return dict(
             investor=self.name,
@@ -97,8 +97,6 @@ class CapTableParser(object):
                 transaction = Transaction(row)
                 if transaction.date > self.end_date:      # skip entires that happens after
                     continue
-
-                # Indiscriminate: all transactions are kosher after this point
 
                 name = transaction.investor
                 if name in investors:
